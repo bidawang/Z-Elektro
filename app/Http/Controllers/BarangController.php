@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Katalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
+use Illuminate\Support\Str;
 
 class BarangController extends Controller
 {
@@ -26,13 +29,38 @@ class BarangController extends Controller
             'items.*.harga_modal' => 'required|numeric',
             'items.*.harga_dalam' => 'required|numeric',
             'items.*.harga_luar' => 'required|numeric',
-            'items.*.foto' => 'nullable|image|max:2048'
+            'items.*.foto' => 'nullable|image|max:5120'
         ]);
 
+        $manager = new ImageManager(new Driver());
+
         foreach ($request->items as $item) {
+
             $path = null;
+
             if (isset($item['foto'])) {
-                $path = $item['foto']->store('barang', 'public');
+
+                $image = $manager->read($item['foto']);
+
+                // Resize aman (tidak merusak detail)
+                $image->scaleDown(width: 1600);
+
+                $tempPath = storage_path('app/temp_' . Str::random(10) . '.webp');
+
+                // Simpan WebP kualitas stabil
+                $image->toWebp(80)->save($tempPath);
+
+                // Jika masih >500KB, turunkan sedikit (tanpa brutal)
+                if (filesize($tempPath) > 500 * 1024) {
+                    $image->toWebp(70)->save($tempPath);
+                }
+
+                $finalPath = 'barang/' . Str::random(20) . '.webp';
+                Storage::disk('public')->put($finalPath, file_get_contents($tempPath));
+
+                unlink($tempPath);
+
+                $path = $finalPath;
             }
 
             Katalog::create([
@@ -44,7 +72,8 @@ class BarangController extends Controller
             ]);
         }
 
-        return redirect()->route('barang.index')->with('success', 'Barang berhasil ditambah!');
+        return redirect()->route('barang.index')
+            ->with('success', 'Barang berhasil ditambah!');
     }
 
     public function show(Katalog $barang)
@@ -64,16 +93,41 @@ class BarangController extends Controller
             'harga_modal' => 'required|numeric',
             'harga_dalam' => 'required|numeric',
             'harga_luar' => 'required|numeric',
-            'foto' => 'nullable|image|max:2048'
+            'foto' => 'nullable|image|max:5120'
         ]);
 
         if ($request->hasFile('foto')) {
-            if ($barang->foto) Storage::disk('public')->delete($barang->foto);
-            $data['foto'] = $request->file('foto')->store('barang', 'public');
+
+            // Hapus foto lama
+            if ($barang->foto) {
+                Storage::disk('public')->delete($barang->foto);
+            }
+
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($request->file('foto'));
+
+            $image->scaleDown(width: 1600);
+
+            $tempPath = storage_path('app/temp_' . Str::random(10) . '.webp');
+
+            $image->toWebp(80)->save($tempPath);
+
+            if (filesize($tempPath) > 500 * 1024) {
+                $image->toWebp(70)->save($tempPath);
+            }
+
+            $finalPath = 'barang/' . Str::random(20) . '.webp';
+            Storage::disk('public')->put($finalPath, file_get_contents($tempPath));
+
+            unlink($tempPath);
+
+            $data['foto'] = $finalPath;
         }
 
         $barang->update($data);
-        return redirect()->route('barang.index');
+
+        return redirect()->route('barang.index')
+            ->with('success', 'Barang berhasil diperbarui!');
     }
 
     public function destroy(Katalog $barang)
