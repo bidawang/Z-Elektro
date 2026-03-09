@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{{ config('app.name') }}</title>
 
     {{-- Font --}}
@@ -14,7 +15,11 @@
 
     {{-- Vendor --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    {{-- ALPINE JS --}}
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
         :root {
@@ -32,10 +37,11 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: var(--text);
             padding-bottom: 110px;
-            font-size: 0.85rem;
+            font-size: .85rem;
         }
 
         /* ===== HEADER ===== */
+
         .app-header {
             position: sticky;
             top: 0;
@@ -60,7 +66,8 @@
             padding: 10px 16px 14px;
         }
 
-        /* ===== KATALOG CARD ENHANCEMENT ===== */
+        /* ===== KATALOG CARD ===== */
+
         .katalog-card {
             border-radius: 20px;
             transition: all .25s ease;
@@ -79,11 +86,13 @@
         }
 
         /* ===== CONTENT ===== */
+
         main {
             padding-top: 14px;
         }
 
         /* ===== CARD ===== */
+
         .card {
             border: none;
             border-radius: 18px;
@@ -91,11 +100,13 @@
         }
 
         /* ===== DROPDOWN SAFE ===== */
+
         .dropdown-menu {
             z-index: 1060;
         }
 
         /* ===== BOTTOM NAV ===== */
+
         .bottom-nav {
             position: fixed;
             bottom: 14px;
@@ -136,7 +147,8 @@
             padding: 0;
         }
 
-        /* ===== FOOTER PUBLIC ===== */
+        /* ===== FOOTER ===== */
+
         .footer-public {
             position: fixed;
             bottom: 0;
@@ -147,41 +159,97 @@
             font-size: .7rem;
             color: var(--muted);
         }
+
+        .app-footer {
+            margin-top: 40px;
+            padding: 24px 10px 90px;
+            text-align: center;
+            color: var(--muted);
+            font-size: .72rem;
+        }
+
+        .footer-title {
+            font-weight: 700;
+            letter-spacing: .08em;
+            font-size: .8rem;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .footer-sub {
+            opacity: .8;
+            margin-bottom: 6px;
+        }
+
+        .footer-meta {
+            opacity: .6;
+        }
     </style>
 
     @stack('styles')
+
 </head>
 
 <body>
 
-    {{-- ===== HEADER ===== --}}
+    {{-- HEADER --}}
     <div class="app-header">
         <div class="app-title">
             {{ config('app.name') }}
         </div>
 
-        {{-- FILTER SLOT --}}
         @yield('header-filter')
     </div>
 
-    {{-- ===== CONTENT ===== --}}
+    {{-- CONTENT --}}
     <main class="container">
         @yield('content')
     </main>
 
-    {{-- ===== NAV ===== --}}
+    {{-- NAV --}}
     @auth
+
         <div class="bottom-nav">
-            <a href="{{ route('katalog.index') }}" class="nav-item-box {{ request()->is('/') ? 'active' : '' }}">
-                <span>🏠</span>
-                Katalog
+
+            {{-- KATALOG (admin & developer) --}}
+            @if (in_array(auth()->user()->level, ['developer', 'admin','kasir']))
+                <a href="{{ route('katalog.index') }}" class="nav-item-box {{ request()->is('/') ? 'active' : '' }}">
+                    <span>🏠</span>
+                    Katalog
+                </a>
+            @endif
+
+
+            {{-- BARANG (admin & developer) --}}
+            @if (in_array(auth()->user()->level, ['developer', 'admin', 'kasir']))
+                <a href="{{ route('barang.index') }}"
+                    class="nav-item-box {{ request()->is('admin/barang*') ? 'active' : '' }}">
+                    <span>📦</span>
+                    Barang
+                </a>
+            @endif
+
+
+            {{-- KATEGORI (admin & developer) --}}
+            @if (in_array(auth()->user()->level, ['developer', 'admin']))
+                <a href="{{ route('kategori.index') }}"
+                    class="nav-item-box {{ request()->is('kategori*') ? 'active' : '' }}">
+                    <span>📂</span>
+                    Kategori
+                </a>
+            @endif
+
+
+            {{-- LAPORAN (semua user login) --}}
+            <a href="{{ route('laporan.index') }}" class="nav-item-box {{ request()->is('laporan*') ? 'active' : '' }}">
+                <span>📝</span>
+                Laporan
             </a>
 
-            <a href="{{ route('barang.index') }}" class="nav-item-box {{ request()->is('admin/barang*') ? 'active' : '' }}">
-                <span>📦</span>
-                Barang
-            </a>
 
+            {{-- LOGOUT --}}
             <form action="{{ route('logout') }}" method="POST" class="nav-item-box">
                 @csrf
                 <button type="submit" class="btn-logout">
@@ -189,18 +257,35 @@
                     Logout
                 </button>
             </form>
+
         </div>
     @else
-        <div class="footer-public">
-            © {{ date('Y') }} {{ config('app.name') }}
-        </div>
+        <footer class="app-footer">
+            <div class="container text-center">
+
+                <div class="footer-title">
+                    {{ config('app.name') }}
+                </div>
+
+                <div class="footer-sub">
+                    Sistem Laporan Operasional
+                </div>
+
+                <div class="footer-meta">
+                    © {{ date('Y') }} • All Rights Reserved
+                </div>
+
+            </div>
+        </footer>
+
     @endauth
 
-    {{-- Vendor --}}
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {{-- Bootstrap --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     @stack('scripts')
+
 </body>
 
 </html>

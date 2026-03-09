@@ -21,6 +21,12 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            // simpan level ke session
+            session([
+                'level' => Auth::user()->level
+            ]);
+
             return redirect()->intended(route('barang.index'));
         }
 

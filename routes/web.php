@@ -3,6 +3,8 @@
 use App\Http\Controllers\KatalogController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\LaporanController;
 use Illuminate\Support\Facades\Route;
 
 // Katalog Utama (Terbuka untuk Umum)
@@ -17,4 +19,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // CRUD Barang (Hanya yang sudah Login)
 Route::middleware('auth')->prefix('admin')->group(function () {
     Route::resource('barang', BarangController::class);
+    Route::resource('kategori', KategoriController::class);
+    Route::resource('laporan', LaporanController::class)->only(['index', 'update']);
 });
